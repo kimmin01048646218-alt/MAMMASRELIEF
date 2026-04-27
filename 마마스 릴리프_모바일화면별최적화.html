@@ -443,22 +443,56 @@
             document.getElementById('preorder-form').reset();
         }
 
-        function submitPreorder(event) {
+        // 여기에 구글 스프레드시트 앱스 스크립트 웹앱 URL을 붙여넣으세요.
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO3FR8cEYa2xNi3BMLcY3_KYWCFmIi-yakdA_lj47M63U8qXhY-vbGsbQPdiFtGuKK/exec';
+
+        async function submitPreorder(event) {
             event.preventDefault();
             const userContact = document.getElementById('userContact').value;
-
-            // 1. 선택한 특정 상품의 카운트만 1 증가
-            let count = localStorage.getItem(selectedProductKey) || 0;
-            localStorage.setItem(selectedProductKey, parseInt(count) + 1);
-
-            // 2. 알림창 띄우기
-            alert(`[${selectedProductName}] 예약이 완료되었습니다!\n입력하신 연락처(${userContact})로 출시 즉시 가장 먼저 쿠폰을 보내드리겠습니다.`);
             
-            // 3. 선택한 상품의 게이지만 독립적으로 다시 렌더링
-            updateSpecificBar(selectedProductKey);
-            updateAdminPanel();
+            // 전송 중인 상태를 표시하기 위해 버튼 텍스트 변경
+            const submitBtn = document.querySelector('#preorder-form .submit-btn') || document.querySelector('.submit-btn');
+            const originalBtnText = submitBtn.innerText;
             
-            closePreorderModal();
+            if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_SCRIPT_URL_HERE') {
+                alert("구글 시트 URL이 설정되지 않았습니다. 개발자 가이드에 따라 URL을 입력해주세요.");
+                return;
+            }
+
+            try {
+                submitBtn.innerText = "전송 중...";
+                submitBtn.style.pointerEvents = 'none';
+
+                // 구글 시트로 POST 요청 (CORS 이슈 방지를 위해 no-cors 모드 사용)
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        '상품명': selectedProductName,
+                        '연락처': userContact
+                    })
+                });
+
+                // 성공적으로 전송되었다고 가정하고 화면 처리
+                let count = localStorage.getItem(selectedProductKey) || 0;
+                localStorage.setItem(selectedProductKey, parseInt(count) + 1);
+
+                alert(`[${selectedProductName}] 예약이 완료되었습니다!\n입력하신 연락처(${userContact})로 출시 즉시 가장 먼저 연락드리겠습니다.`);
+                
+                updateSpecificBar(selectedProductKey);
+                updateAdminPanel();
+                closePreorderModal();
+
+            } catch (error) {
+                console.error('Error!', error.message);
+                alert("통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            } finally {
+                submitBtn.innerText = originalBtnText;
+                submitBtn.style.pointerEvents = 'auto';
+            }
         }
 
         /* --- Admin Panel --- */
